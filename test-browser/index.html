@@ -3,81 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SyftBox API SDK Browser Test</title>
+    <title>SyftBox API SDK - Test Interface</title>
     
-    <!-- Testing Interface Styles -->
-    <link rel="stylesheet" href="assets/css/testing.css">
+    <!-- Clean minimalist styles -->
+    <link rel="stylesheet" href="assets/css/clean.css">
 </head>
 <body>
-    <div class="header">
-        <h1>🚀 SyftBox API SDK Browser Test</h1>
-        <p>Complete SDK testing with authentication, file operations, and WebSocket</p>
-    </div>
+    <div class="main-container">
+        <!-- Header -->
+        <header class="header">
+            <h1>SyftBox API SDK</h1>
+            <p>Test interface for authentication, file operations, and datasite services</p>
+        </header>
 
-    <div class="container fix-info">
-        <h2>📦 NEW SDK TEST</h2>
-        <p><strong>Package:</strong> @syftbox/api-sdk v1.0.0</p>
-        <p><strong>Features:</strong> OTP Auth • Blob Storage • WebSocket • RPC • ACL • Datasite</p>
-        <p><strong>Browser Bundle:</strong> dist/syftbox.umd.js (IIFE format)</p>
-    </div>
+        <!-- Authentication Card -->
+        <div class="card">
+            <h2>🔐 Authentication</h2>
+            <p>Connect to your SyftBox account using OTP authentication</p>
+            
 
-    <div class="container">
-        <h2>Step 1: Authentication</h2>
-        
-        <!-- Step 1a: Initialize -->
-        <div class="auth-step">
-            <button id="init-btn">Initialize Client</button>
-            <div id="init-status"></div>
+            <div class="form-section">
+                <h3>Request Access Code</h3>
+                <div class="form-group">
+                    <input type="email" id="email" placeholder="your-email@example.com" />
+                    <button disabled id="otp-request-btn" class="btn btn-primary">Send Code</button>
+                </div>
+                <div id="otp-request-status"></div>
+            </div>
+
+            <div class="form-section">
+                <h3>Verify & Login</h3>
+                <div class="form-group">
+                    <input type="text" id="otp" placeholder="Enter 8-digit code" maxlength="8" />
+                    <button disabled id="otp-verify-btn" class="btn btn-primary">Login</button>
+                </div>
+                <div id="auth-status"></div>
+            </div>
         </div>
-        
-        <!-- Step 1b: Request OTP -->
-        <div class="auth-step">
-            <input type="email" id="email" placeholder="your-email@example.com" />
-            <button id="otp-request-btn" disabled>Send OTP to Email</button>
-            <div id="otp-request-status"></div>
+
+        <!-- File Operations Card -->
+        <div class="card">
+            <h2>📁 File Operations</h2>
+            <p>Test file upload and download functionality with your authenticated account</p>
+            
+            <div class="form-section">
+                <h3>Upload Test</h3>
+                <div class="form-group">
+                    <button disabled id="test-btn" class="btn btn-primary">Upload Test File</button>
+                </div>
+                <div id="upload-status"></div>
+            </div>
+
+            <div class="form-section">
+                <h3>Download Test</h3>
+                <div class="form-group">
+                    <button disabled id="download-test-btn" class="btn btn-secondary">Download Test File</button>
+                </div>
+                <div id="download-test-status"></div>
+            </div>
         </div>
-        
-        <!-- Step 1c: Verify OTP -->
-        <div class="auth-step">
-            <input type="text" id="otp" placeholder="Enter 8-digit OTP code" maxlength="8" />
-            <button id="otp-verify-btn" disabled>Verify OTP & Login</button>
-            <div id="auth-status"></div>
+
+        <!-- Datasite Services Card -->
+        <div class="card">
+            <h2>🗄️ Datasite Services</h2>
+            <p>Explore your files and test datasite caching functionality</p>
+            
+            <div class="form-section">
+                <h3>View All Files</h3>
+                <div class="form-group">
+                    <button disabled id="datasite-btn" class="btn btn-primary">Load File View</button>
+                </div>
+                <div id="services-status"></div>
+            </div>
+
+            <div class="form-section">
+                <h3>Filter by Path</h3>
+                <div class="form-group">
+                    <input type="text" id="path-input" placeholder="Enter path prefix (e.g., public/, data/)" value="public/" />
+                    <button disabled id="path-view-btn" class="btn btn-secondary">Filter Files</button>
+                </div>
+                <div id="path-view-status"></div>
+                
+                <!-- File paths display container -->
+                <div id="file-paths-container" class="files-container" style="display: none;">
+                    <div class="files-header">
+                        <h3 id="files-title">Filtered Files</h3>
+                    </div>
+                    <div id="file-paths-list" class="files-list"></div>
+                    <div id="file-summary" class="files-summary"></div>
+                </div>
+            </div>
         </div>
-    </div>
-
-    <div class="container critical">
-        <h2>Step 2: File Upload Test</h2>
-        <p>Test blob upload functionality</p>
-        <button disabled id="test-btn">📤 Test File Upload</button>
-        <div id="test-status"></div>
-    </div>
-
-    <div class="container critical">
-        <h2>Step 3: File Download Test</h2>
-        <p>Test download with proxy server</p>
-        <button disabled id="download-test-btn">📥 Test File Download</button>
-        <div id="download-test-status"></div>
-    </div>
-
-    <div class="container">
-        <h2>Step 4: WebSocket Test</h2>
-        <p>Test real-time WebSocket connection</p>
-        <button disabled id="websocket-btn">🔌 Test WebSocket</button>
-        <div id="websocket-status"></div>
-    </div>
-
-    <div class="container">
-        <h2>Step 5: Additional Services</h2>
-        <button disabled id="acl-btn">🔐 Test ACL Check</button>
-        <button disabled id="datasite-btn">📊 Test Datasite View</button>
-        <button disabled id="list-btn">📋 List Uploaded Files</button>
-        <div id="services-status"></div>
-    </div>
-
-    <div class="container">
-        <h2>📝 Real-time Log</h2>
-        <button class="clear-btn" onclick="testingApp && testingApp.clearLog()">Clear</button>
-        <div class="log" id="console-log"></div>
     </div>
 
     <!-- SyftBox Client Library (UMD Bundle) -->
@@ -85,8 +101,7 @@
     
     <!-- Testing Application Module -->
     <script src="assets/js/testing-app.js"></script>
-    
-    <!-- Application Initialization -->
+
     <script>
         // Initialize testing application when page loads
         let testingApp;
@@ -110,51 +125,17 @@
                 }
             } else {
                 console.error('❌ SyftBoxClient not found! Check if the bundle loaded correctly.');
-                document.getElementById('console-log').innerHTML = 
-                    '<span style="color: #ff0040">❌ Failed to load SyftBox SDK bundle!</span>';
+                alert('❌ Failed to load SyftBox SDK bundle!');
             }
         });
 
         // Handle page visibility changes
         document.addEventListener('visibilitychange', () => {
             if (testingApp && document.hidden) {
-                testingApp.log('⏸️ Testing paused (page hidden)', 'warning');
+                console.log('⏸️ Testing paused (page hidden)');
             } else if (testingApp && !document.hidden) {
-                testingApp.log('▶️ Testing resumed (page visible)', 'info');
+                console.log('▶️ Testing resumed (page visible)');
             }
-        });
-
-        // Add keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            if (!testingApp) return;
-            
-            // Ctrl+E to export logs
-            if (e.ctrlKey && e.key === 'e') {
-                e.preventDefault();
-                testingApp.exportLogs();
-            }
-            
-            // Ctrl+L to clear logs
-            if (e.ctrlKey && e.key === 'l') {
-                e.preventDefault();
-                testingApp.clearLog();
-            }
-            
-            // Ctrl+D for debug info
-            if (e.ctrlKey && e.key === 'd') {
-                e.preventDefault();
-                testingApp.showDebugInfo();
-            }
-        });
-
-        // Add initialization hint
-        window.addEventListener('load', () => {
-            setTimeout(() => {
-                if (testingApp) {
-                    testingApp.log('💡 Keyboard shortcuts: Ctrl+E (export), Ctrl+L (clear), Ctrl+D (debug)', 'info');
-                    testingApp.log('📦 SDK Version: @syftbox/api-sdk v1.0.0', 'info');
-                }
-            }, 1000);
         });
     </script>
 </body>

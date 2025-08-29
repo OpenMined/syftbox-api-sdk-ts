@@ -4,7 +4,7 @@ import { BlobService, IBlobService } from './services/blob';
 import { WebSocketService, IWebSocketService, WebSocketConfig } from './services/websocket';
 import { RPCService, IRPCService } from './services/rpc';
 import { ACLService, IACLService } from './services/acl';
-import { DatasiteService, IDatasiteService } from './services/datasite';
+import { DatasiteService, IDatasiteService, DatasiteServiceConfig } from './services/datasite';
 import { PluginManager } from './plugins/manager';
 import { ITokenStorage } from './utils/storage';
 import { SyftBoxError, SyftBoxErrorCode } from './errors';
@@ -30,6 +30,7 @@ export interface SyftBoxClientConfig {
   proxy?: {
     baseUrl?: string; // Base URL like 'http://localhost:8000' or 'https://myserver.com:8443'
   };
+  datasite?: DatasiteServiceConfig;
 }
 
 export class SyftBoxClient {
@@ -88,8 +89,8 @@ export class SyftBoxClient {
     // Initialize ACL service
     this.aclService = new ACLService(this.httpClient);
 
-    // Initialize Datasite service
-    this.datasiteService = new DatasiteService(this.httpClient);
+    // Initialize Datasite service with caching configuration
+    this.datasiteService = new DatasiteService(this.httpClient, config.datasite);
 
     // Set up interceptors
     this.setupInterceptors(config);
@@ -315,6 +316,19 @@ export class SyftBoxClient {
     });
 
     return sanitized;
+  }
+
+  /**
+   * Clean up resources and stop background processes
+   */
+  destroy(): void {
+    // Clean up datasite service (stop auto-refresh interval)
+    this.datasiteService.destroy();
+    
+    // Disconnect WebSocket if connected
+    if (this.websocketService.isConnected()) {
+      this.websocketService.disconnect();
+    }
   }
 }
 

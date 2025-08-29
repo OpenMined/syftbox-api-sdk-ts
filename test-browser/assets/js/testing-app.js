@@ -1,12 +1,10 @@
 /**
  * Testing Application Module - SyftBox API SDK Testing Interface
  * 
- * This module provides comprehensive testing functionality for:
+ * This module provides testing functionality for:
  * - Client initialization and authentication
  * - File upload/download testing
- * - WebSocket real-time communication
- * - ACL and Datasite services
- * - Real-time status monitoring
+ * - Datasite services and path filtering
  */
 
 class TestingApp {
@@ -14,8 +12,6 @@ class TestingApp {
         this.client = null;
         this.isAuthenticated = false;
         this.currentUser = null;
-        this.logEntries = [];
-        this.wsConnection = null;
         this.lastUploadedFile = null; // Track the last uploaded file for download test
         
         this.init();
@@ -24,24 +20,17 @@ class TestingApp {
     async init() {
         try {
             this.setupEventListeners();
-            this.initializeLogging();
-            
-            this.log('🚀 SyftBox API SDK Test Suite Ready', 'critical');
-            this.log('Testing new TypeScript SDK with full feature set', 'info');
-            this.log('Available services: Auth, Blob, WebSocket, RPC, ACL, Datasite', 'info');
-            
             console.log('✅ Testing application initialized');
+            
+            // Auto-initialize the client
+            await this.initializeClient();
         } catch (error) {
             console.error('❌ Failed to initialize testing app:', error);
         }
     }
 
     setupEventListeners() {
-        // Initialize client button
-        const initBtn = document.getElementById('init-btn');
-        if (initBtn) {
-            initBtn.addEventListener('click', () => this.initializeClient());
-        }
+        // Initialize client button (removed - auto-initializes)
 
         // OTP request button
         const otpRequestBtn = document.getElementById('otp-request-btn');
@@ -55,25 +44,16 @@ class TestingApp {
             otpVerifyBtn.addEventListener('click', () => this.verifyOTP());
         }
 
-        // Test buttons
+        // File upload test button
         const testBtn = document.getElementById('test-btn');
         if (testBtn) {
             testBtn.addEventListener('click', () => this.testUpload());
         }
 
+        // File download test button
         const downloadTestBtn = document.getElementById('download-test-btn');
         if (downloadTestBtn) {
             downloadTestBtn.addEventListener('click', () => this.testDownload());
-        }
-
-        const websocketBtn = document.getElementById('websocket-btn');
-        if (websocketBtn) {
-            websocketBtn.addEventListener('click', () => this.testWebSocket());
-        }
-
-        const aclBtn = document.getElementById('acl-btn');
-        if (aclBtn) {
-            aclBtn.addEventListener('click', () => this.testACL());
         }
 
         const datasiteBtn = document.getElementById('datasite-btn');
@@ -81,263 +61,175 @@ class TestingApp {
             datasiteBtn.addEventListener('click', () => this.testDatasite());
         }
 
-        const listBtn = document.getElementById('list-btn');
-        if (listBtn) {
-            listBtn.addEventListener('click', () => this.listFiles());
+        const pathViewBtn = document.getElementById('path-view-btn');
+        if (pathViewBtn) {
+            pathViewBtn.addEventListener('click', () => this.testPathView());
         }
 
         // Enter key handlers
         const emailInput = document.getElementById('email');
         if (emailInput) {
             emailInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') this.requestOTP();
+                if (e.key === 'Enter') {
+                    this.requestOTP();
+                }
             });
         }
 
         const otpInput = document.getElementById('otp');
         if (otpInput) {
             otpInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') this.verifyOTP();
+                if (e.key === 'Enter') {
+                    this.verifyOTP();
+                }
             });
         }
-    }
 
-    initializeLogging() {
-        // Clear log button is handled inline in HTML
-        console.log('Logging system initialized');
-    }
-
-    log(message, type = 'info') {
-        const logDiv = document.getElementById('console-log');
-        if (!logDiv) return;
-
-        const timestamp = new Date().toLocaleTimeString();
-        const colors = {
-            info: '#00ff41',
-            success: '#00aa41', 
-            error: '#ff0040',
-            warning: '#ffaa00',
-            critical: '#ff4081'
-        };
-        
-        const color = colors[type] || colors.info;
-        const emoji = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'critical' ? '🔥' : '📋';
-        
-        const logEntry = {
-            timestamp,
-            message,
-            type,
-            color,
-            emoji
-        };
-        
-        this.logEntries.push(logEntry);
-        
-        // Update display
-        logDiv.innerHTML += `<span style="color: ${color}">[${timestamp}] ${emoji} ${message}</span>\n`;
-        logDiv.scrollTop = logDiv.scrollHeight;
-        
-        // Also log to console
-        console.log(`[SDK-TEST] ${message}`);
-    }
-
-    clearLog() {
-        const logDiv = document.getElementById('console-log');
-        if (logDiv) {
-            logDiv.innerHTML = '';
+        const pathInput = document.getElementById('path-input');
+        if (pathInput) {
+            pathInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    this.testPathView();
+                }
+            });
         }
-        this.logEntries = [];
-        this.log('Log cleared', 'info');
     }
 
     async initializeClient() {
         try {
-            const initBtn = document.getElementById('init-btn');
             const statusDiv = document.getElementById('init-status');
-            
-            if (initBtn) initBtn.disabled = true;
-            this.log('🚀 Initializing SyftBox client...', 'info');
-            
-            // Check if SyftBoxClient is available
-            if (typeof SyftBoxClient === 'undefined') {
-                throw new Error('SyftBoxClient not found! Bundle may not be loaded.');
+            if (statusDiv) {
+                statusDiv.innerHTML = '<div class="status status-info">⏳ Initializing client...</div>';
             }
-            
-            // Determine the proxy base URL based on current location
-            const proxyBaseUrl = `${window.location.protocol}//${window.location.hostname}:8000`;
-            
-            // Use the createSyftBoxClient factory function
+
+            console.log('🚀 Initializing SyftBox client...');
+
             this.client = SyftBoxClient.createSyftBoxClient({
                 serverUrl: 'https://syftbox.net',
-                logging: { 
-                    enabled: true, 
-                    level: 'debug' 
+                logging: {
+                    enabled: true,
+                    level: 'debug'
                 },
-                proxy: {
-                    baseUrl: proxyBaseUrl
-                },
-                websocket: {
-                    reconnectAttempts: 5,
-                    reconnectDelay: 2000
+                datasite: {
+                    refreshIntervalMs: 10000,
+                    autoRefresh: true
                 }
             });
-            
-            this.log(`Client initialized with server: https://syftbox.net`, 'info');
-            this.log(`Proxy configured for: ${proxyBaseUrl}`, 'info');
-            
-            if (statusDiv) {
-                statusDiv.innerHTML = '<span class="success">✅ Client initialized</span>';
-            }
-            this.log('✅ SyftBox client created and ready', 'success');
-            
+
+            console.log('✅ Client initialized successfully');
+
             // Enable OTP request
             const otpRequestBtn = document.getElementById('otp-request-btn');
-            if (otpRequestBtn) {
-                otpRequestBtn.disabled = false;
-            }
-            
+            if (otpRequestBtn) otpRequestBtn.disabled = false;
+
         } catch (error) {
+            console.error('❌ Client initialization failed:', error);
+
             const statusDiv = document.getElementById('init-status');
-            const initBtn = document.getElementById('init-btn');
-            
             if (statusDiv) {
-                statusDiv.innerHTML = '<span class="error">❌ Failed to initialize</span>';
+                statusDiv.innerHTML = '<div class="status status-error">❌ Initialization failed</div>';
             }
-            this.log(`❌ Client initialization failed: ${error.message}`, 'error');
-            if (initBtn) initBtn.disabled = false;
         }
     }
 
     async requestOTP() {
         if (!this.client) {
-            const statusDiv = document.getElementById('otp-request-status');
-            if (statusDiv) {
-                statusDiv.innerHTML = '<span class="error">❌ Initialize client first</span>';
-            }
+            console.error('❌ Client not initialized');
             return;
         }
-        
+
         const emailInput = document.getElementById('email');
         const email = emailInput ? emailInput.value.trim() : '';
-        
-        if (!email || !email.includes('@')) {
-            const statusDiv = document.getElementById('otp-request-status');
-            if (statusDiv) {
-                statusDiv.innerHTML = '<span class="error">❌ Enter valid email</span>';
-            }
+
+        if (!email) {
+            console.error('❌ Please enter an email');
             return;
         }
-        
+
         try {
-            const otpRequestBtn = document.getElementById('otp-request-btn');
             const statusDiv = document.getElementById('otp-request-status');
-            
-            if (otpRequestBtn) otpRequestBtn.disabled = true;
             if (statusDiv) {
-                statusDiv.innerHTML = '<span class="warning">⏳ Sending OTP...</span>';
+                statusDiv.innerHTML = '<div class="status status-info">⏳ Requesting OTP...</div>';
             }
-            this.log(`📧 Requesting OTP for: ${email}`, 'info');
+
+            console.log(`📧 Requesting OTP for: ${email}`);
             
             await this.client.auth.requestOTP(email);
-            
+
+            console.log('✅ OTP request successful! Check your email.');
+
             if (statusDiv) {
-                statusDiv.innerHTML = '<span class="success">✅ OTP sent! Check your email</span>';
+                statusDiv.innerHTML = '<div class="status status-success">✅ OTP sent! Check your email.</div>';
             }
-            this.log('✅ OTP request successful! Check your email', 'success');
-            
+
             // Enable OTP verification
             const otpVerifyBtn = document.getElementById('otp-verify-btn');
-            const otpInput = document.getElementById('otp');
             if (otpVerifyBtn) otpVerifyBtn.disabled = false;
-            if (otpInput) otpInput.focus();
-            
+
         } catch (error) {
+            console.error(`❌ OTP request failed: ${error.message}`);
+
             const statusDiv = document.getElementById('otp-request-status');
-            const otpRequestBtn = document.getElementById('otp-request-btn');
-            
             if (statusDiv) {
-                statusDiv.innerHTML = `<span class="error">❌ OTP failed: ${error.message}</span>`;
+                statusDiv.innerHTML = '<div class="status status-error">❌ OTP request failed</div>';
             }
-            this.log(`❌ OTP request error: ${error.message}`, 'error');
-            if (error.code) {
-                this.log(`Error code: ${error.code}`, 'error');
-            }
-            if (otpRequestBtn) otpRequestBtn.disabled = false;
         }
     }
 
     async verifyOTP() {
         if (!this.client) {
-            const statusDiv = document.getElementById('auth-status');
-            if (statusDiv) {
-                statusDiv.innerHTML = '<span class="error">❌ Initialize client first</span>';
-            }
+            console.error('❌ Client not initialized');
             return;
         }
-        
+
         const emailInput = document.getElementById('email');
         const otpInput = document.getElementById('otp');
         const email = emailInput ? emailInput.value.trim() : '';
         const otp = otpInput ? otpInput.value.trim() : '';
-        
-        if (!email) {
-            const statusDiv = document.getElementById('auth-status');
-            if (statusDiv) {
-                statusDiv.innerHTML = '<span class="error">❌ Enter email first</span>';
-            }
+
+        if (!email || !otp) {
+            console.error('❌ Please enter both email and OTP');
             return;
         }
-        
-        if (!otp || otp.length !== 8) {
-            const statusDiv = document.getElementById('auth-status');
-            if (statusDiv) {
-                statusDiv.innerHTML = '<span class="error">❌ Enter 8-digit OTP code</span>';
-            }
-            return;
-        }
-        
+
         try {
-            const otpVerifyBtn = document.getElementById('otp-verify-btn');
             const statusDiv = document.getElementById('auth-status');
-            
-            if (otpVerifyBtn) otpVerifyBtn.disabled = true;
             if (statusDiv) {
-                statusDiv.innerHTML = '<span class="warning">⏳ Verifying OTP...</span>';
+                statusDiv.innerHTML = '<div class="status status-info">⏳ Verifying OTP...</div>';
             }
-            this.log(`🔐 Verifying OTP code: ${otp}`, 'info');
+
+            console.log(`🔐 Verifying OTP for: ${email}`);
             
             const tokens = await this.client.auth.verifyOTP(email, otp);
-            
+
             this.isAuthenticated = true;
             this.currentUser = this.client.getCurrentUser() || email;
-            
+
+            console.log('✅ Authentication successful!');
+            console.log(`👤 Current user: ${this.currentUser}`);
+
             if (statusDiv) {
-                statusDiv.innerHTML = '<span class="success">✅ Authentication successful!</span>';
+                statusDiv.innerHTML = `<div class="status status-success">✅ Authenticated as: ${this.currentUser}</div>`;
             }
-            this.log('✅ Authentication successful! Ready for testing', 'success');
-            this.log(`🎟️ Access token received (${tokens.accessToken.length} chars)`, 'info');
-            this.log(`👤 Current user: ${this.currentUser}`, 'info');
-            
-            // Enable test buttons
+
             this.enableTestButtons();
-            
+
         } catch (error) {
+            console.error(`❌ OTP verification failed: ${error.message}`);
+
             const statusDiv = document.getElementById('auth-status');
-            const otpVerifyBtn = document.getElementById('otp-verify-btn');
-            
             if (statusDiv) {
-                statusDiv.innerHTML = `<span class="error">❌ OTP verification failed: ${error.message}</span>`;
+                statusDiv.innerHTML = '<div class="status status-error">❌ Authentication failed</div>';
             }
-            this.log(`❌ OTP verification error: ${error.message}`, 'error');
-            if (error.code) {
-                this.log(`Error code: ${error.code}`, 'error');
-            }
+
+            // Keep OTP verify button enabled for retry
+            const otpVerifyBtn = document.getElementById('otp-verify-btn');
             if (otpVerifyBtn) otpVerifyBtn.disabled = false;
         }
     }
 
     enableTestButtons() {
-        const buttons = ['test-btn', 'download-test-btn', 'websocket-btn', 'acl-btn', 'datasite-btn', 'list-btn'];
+        const buttons = ['test-btn', 'download-test-btn', 'datasite-btn', 'path-view-btn'];
         buttons.forEach(id => {
             const btn = document.getElementById(id);
             if (btn) btn.disabled = false;
@@ -346,392 +238,358 @@ class TestingApp {
 
     async testUpload() {
         if (!this.client || !this.isAuthenticated) {
-            this.log('❌ Not authenticated', 'error');
+            console.error('❌ Not authenticated');
             return;
         }
 
-        const testKey = `${this.currentUser}/public/test-${Date.now()}.txt`;
-        // Build content without self-reference
-        const timestamp = new Date().toISOString();
-        const testContent = `🚀 SyftBox API SDK Test File
-Timestamp: ${timestamp}
-User: ${this.currentUser}
-SDK Version: @syftbox/api-sdk v1.0.0
-
-This file was uploaded using the new TypeScript SDK.
-
-Test Details:
-- Upload method: client.blob.upload()
-- Key format: ${testKey}
-- Content type: text/plain
-
-If you can read this file, the upload worked! 🎉`;
-
         try {
-            const statusDiv = document.getElementById('test-status');
+            const statusDiv = document.getElementById('upload-status');
             if (statusDiv) {
-                statusDiv.innerHTML = '<span class="warning">⏳ Uploading file...</span>';
+                statusDiv.innerHTML = '<div class="status status-info">⏳ Testing upload...</div>';
             }
             
-            this.log('🚀 STARTING FILE UPLOAD TEST', 'critical');
-            this.log(`📤 Target: ${testKey}`, 'info');
+            console.log('📤 TESTING FILE UPLOAD');
             
-            const blob = new Blob([testContent], { type: 'text/plain' });
-            this.log(`📝 Content size: ${blob.size} bytes`, 'info');
+            // Create a test file
+            const testContent = `Hello from SyftBox SDK!\nTimestamp: ${new Date().toISOString()}\nUser: ${this.currentUser}`;
+            const testFile = new File([testContent], 'test-upload.txt', { type: 'text/plain' });
+            const testPath = `${this.currentUser}/public/test-upload-${Date.now()}.txt`;
             
-            const startTime = Date.now();
-            const result = await this.client.blob.upload(testKey, blob);
-            const endTime = Date.now();
+            console.log(`📁 Uploading to: ${testPath}`);
+            console.log(`📊 File size: ${testFile.size} bytes`);
             
-            this.log(`🎉 Upload successful! Completed in ${endTime - startTime}ms`, 'success');
-            this.log(`📊 Result details:`, 'success');
-            this.log(`  • Key: ${result.key}`, 'info');
-            this.log(`  • Size: ${result.size} bytes`, 'info');
-            this.log(`  • Version: ${result.version}`, 'info');
-            this.log(`  • ETag: ${result.etag}`, 'info');
-            this.log(`  • Last Modified: ${result.lastModified}`, 'info');
+            const result = await this.client.blob.upload(testPath, testFile);
             
-            // Save the uploaded file key for download test
-            this.lastUploadedFile = testKey;
-            this.log(`💾 Saved file key for download test: ${testKey}`, 'info');
+            console.log(`✅ Upload successful!`);
+            console.log(`📊 Upload result:`, result);
+            
+            // Store for download test
+            this.lastUploadedFile = {
+                path: testPath,
+                name: testFile.name,
+                size: testFile.size,
+                result: result
+            };
             
             if (statusDiv) {
-                statusDiv.innerHTML = '<span class="success">🎉 Upload successful!</span>';
+                statusDiv.innerHTML = `<div class="status status-success">✅ Upload successful: ${testPath}</div>`;
             }
-            
-            // Verify file exists
-            setTimeout(async () => {
-                try {
-                    this.log('🔍 Verifying uploaded file exists...', 'info');
-                    const exists = await this.client.blob.exists(testKey);
-                    if (exists) {
-                        this.log('✅ File confirmed in blob storage!', 'success');
-                    } else {
-                        this.log('⚠️ File not found in list (may be propagation delay)', 'warning');
-                    }
-                } catch (e) {
-                    this.log(`⚠️ Verification check failed: ${e.message}`, 'warning');
-                }
-            }, 2000);
             
         } catch (error) {
-            const statusDiv = document.getElementById('test-status');
-            
-            this.log(`❌ Upload failed: ${error.message}`, 'error');
+            console.error(`❌ Upload error: ${error.message}`);
             if (error.code) {
-                this.log(`🔍 Error code: ${error.code}`, 'error');
+                console.error(`🔍 Error code: ${error.code}`);
             }
             
+            const statusDiv = document.getElementById('upload-status');
             if (statusDiv) {
-                statusDiv.innerHTML = '<span class="error">❌ Upload failed - check logs</span>';
+                statusDiv.innerHTML = '<div class="status status-error">❌ Upload failed - check console</div>';
             }
         }
     }
 
     async testDownload() {
         if (!this.client || !this.isAuthenticated) {
-            this.log('❌ Not authenticated', 'error');
+            console.error('❌ Not authenticated');
             return;
         }
 
-        // Use the last uploaded file if available, otherwise try a default
-        let targetFile = this.lastUploadedFile;
-        
-        if (!targetFile) {
-            this.log('⚠️ No file uploaded yet. Uploading a test file first...', 'warning');
-            
-            // Upload a test file first
-            const testKey = `${this.currentUser}/public/download-test-${Date.now()}.txt`;
-            const testContent = 'This is a test file for download testing.';
-            
-            try {
-                const blob = new Blob([testContent], { type: 'text/plain' });
-                await this.client.blob.upload(testKey, blob);
-                targetFile = testKey;
-                this.log(`✅ Uploaded test file: ${testKey}`, 'success');
-            } catch (uploadError) {
-                this.log(`❌ Failed to upload test file: ${uploadError.message}`, 'error');
-                return;
-            }
+        if (!this.lastUploadedFile) {
+            console.error('❌ No file uploaded yet. Please upload a file first.');
+            return;
         }
-        
+
         try {
             const statusDiv = document.getElementById('download-test-status');
             if (statusDiv) {
-                statusDiv.innerHTML = '<span class="warning">⏳ Testing download...</span>';
+                statusDiv.innerHTML = '<div class="status status-info">⏳ Testing download...</div>';
             }
+
+            console.log('📥 TESTING FILE DOWNLOAD');
+            console.log(`📁 Downloading: ${this.lastUploadedFile.path}`);
+
+            const fileData = await this.client.blob.downloadFile(this.lastUploadedFile.path);
             
-            this.log('🚀 TESTING FILE DOWNLOAD', 'critical');
-            this.log(`📥 Target: ${targetFile}`, 'info');
-            
-            const startTime = Date.now();
-            const fileData = await this.client.blob.downloadFile(targetFile);
-            const endTime = Date.now();
-            
-            // Success handling
+            // Decode binary data to text
             const textContent = new TextDecoder('utf-8').decode(fileData);
-            this.log(`🎉 Download successful! ${fileData.byteLength} bytes in ${endTime - startTime}ms`, 'success');
-            this.log(`📄 Content preview (first 200 chars):`, 'info');
-            this.log(`"${textContent.substring(0, 200)}..."`, 'info');
-            
+
+            console.log(`✅ Download successful!`);
+            console.log(`📊 Downloaded ${fileData.byteLength} bytes`);
+            console.log(`📄 Content preview: ${textContent.substring(0, 100)}...`);
+
             if (statusDiv) {
-                statusDiv.innerHTML = '<span class="success">🎉 Download successful!</span>';
+                statusDiv.innerHTML = `<div class="status status-success">✅ Downloaded ${fileData.byteLength} bytes from ${this.lastUploadedFile.name}</div>`;
             }
-            
+
         } catch (error) {
+            console.error(`❌ Download error: ${error.message}`);
+            if (error.code) {
+                console.error(`🔍 Error code: ${error.code}`);
+            }
+
             const statusDiv = document.getElementById('download-test-status');
-            
-            this.log(`❌ Download error: ${error.message}`, 'error');
-            if (error.code) {
-                this.log(`🔍 Error code: ${error.code}`, 'error');
-            }
-            
-            if (error.message.includes('proxy') || error.message.includes('8000')) {
-                this.log('⚠️ Proxy server may not be running on port 8000', 'warning');
-                this.log('💡 Make sure the proxy server is running', 'info');
-            } else if (error.code === 'INVALID_REQUEST' && error.message.includes('400')) {
-                this.log('📝 The file may not exist. Try uploading a file first.', 'warning');
-                this.log('💡 Click "Test File Upload" before testing download', 'info');
-            }
-            
             if (statusDiv) {
-                statusDiv.innerHTML = '<span class="error">❌ Download failed - check logs</span>';
-            }
-        }
-    }
-
-    async testWebSocket() {
-        if (!this.client || !this.isAuthenticated) {
-            this.log('❌ Not authenticated', 'error');
-            return;
-        }
-
-        try {
-            const statusDiv = document.getElementById('websocket-status');
-            if (statusDiv) {
-                statusDiv.innerHTML = '<span class="warning">⏳ Connecting to WebSocket...</span>';
-            }
-            
-            this.log('🔌 TESTING WEBSOCKET CONNECTION', 'critical');
-            
-            // Set up event listeners
-            this.client.websocket.addEventListener('connected', () => {
-                this.log('✅ WebSocket connected!', 'success');
-                if (statusDiv) {
-                    statusDiv.innerHTML = '<span class="success">✅ WebSocket connected!</span>';
-                }
-            });
-            
-            this.client.websocket.addEventListener('disconnected', (event) => {
-                this.log(`⚠️ WebSocket disconnected: ${event.detail?.reason || 'Unknown reason'}`, 'warning');
-            });
-            
-            this.client.websocket.addEventListener('message', (event) => {
-                this.log(`📨 WebSocket message received: ${JSON.stringify(event.detail)}`, 'info');
-            });
-            
-            this.client.websocket.addEventListener('error', (event) => {
-                this.log(`❌ WebSocket error: ${event.detail?.message || 'Unknown error'}`, 'error');
-            });
-            
-            // Connect
-            await this.client.websocket.connect();
-            
-            // Send a test message after connection
-            setTimeout(() => {
-                if (this.client.websocket.isConnected()) {
-                    const testMessage = {
-                        id: `test-${Date.now()}`,
-                        typ: 0, // System message
-                        dat: { test: 'Hello from browser!' }
-                    };
-                    this.client.websocket.send(testMessage);
-                    this.log(`📤 Sent test message: ${JSON.stringify(testMessage)}`, 'info');
-                }
-            }, 1000);
-            
-        } catch (error) {
-            const statusDiv = document.getElementById('websocket-status');
-            
-            this.log(`❌ WebSocket error: ${error.message}`, 'error');
-            if (error.code) {
-                this.log(`🔍 Error code: ${error.code}`, 'error');
-            }
-            
-            if (statusDiv) {
-                statusDiv.innerHTML = '<span class="error">❌ WebSocket failed - check logs</span>';
-            }
-        }
-    }
-
-    async testACL() {
-        if (!this.client || !this.isAuthenticated) {
-            this.log('❌ Not authenticated', 'error');
-            return;
-        }
-
-        try {
-            const statusDiv = document.getElementById('services-status');
-            this.log('🔐 TESTING ACL SERVICE', 'critical');
-            
-            const checkRequest = {
-                user: this.currentUser,
-                path: `${this.currentUser}/public/test.txt`,
-                level: 1, // READ access
-                size: 1024
-            };
-            
-            this.log(`🔍 Checking access for: ${checkRequest.path}`, 'info');
-            this.log(`👤 User: ${checkRequest.user}`, 'info');
-            this.log(`🔑 Level: READ (1)`, 'info');
-            
-            const hasAccess = await this.client.acl.check(checkRequest);
-            
-            if (hasAccess) {
-                this.log('✅ Access granted!', 'success');
-                if (statusDiv) {
-                    statusDiv.innerHTML = '<span class="success">✅ ACL check passed!</span>';
-                }
-            } else {
-                this.log('🚫 Access denied', 'warning');
-                if (statusDiv) {
-                    statusDiv.innerHTML = '<span class="warning">🚫 ACL check: Access denied</span>';
-                }
-            }
-            
-        } catch (error) {
-            this.log(`❌ ACL error: ${error.message}`, 'error');
-            if (error.code) {
-                this.log(`🔍 Error code: ${error.code}`, 'error');
+                statusDiv.innerHTML = '<div class="status status-error">❌ Download failed - check console</div>';
             }
         }
     }
 
     async testDatasite() {
         if (!this.client || !this.isAuthenticated) {
-            this.log('❌ Not authenticated', 'error');
+            console.error('❌ Not authenticated');
             return;
         }
 
         try {
             const statusDiv = document.getElementById('services-status');
-            this.log('📊 TESTING DATASITE SERVICE', 'critical');
+            console.log('📊 TESTING DATASITE SERVICE');
             
-            const path = '/public';
-            this.log(`🔍 Viewing datasite: ${this.currentUser}${path}`, 'info');
+            console.log(`🔍 Getting datasite view for current user`);
             
-            const view = await this.client.datasite.view(this.currentUser, path);
+            // The getView() method doesn't take parameters - it returns files for the authenticated user
+            const files = await this.client.datasite.getView();
             
-            this.log(`✅ Datasite view received!`, 'success');
-            this.log(`📁 Files found: ${view.files?.length || 0}`, 'info');
+            console.log(`✅ Datasite view received!`);
+            console.log(`📁 Files found: ${files?.length || 0}`);
             
-            if (view.files && view.files.length > 0) {
-                this.log('📋 File list:', 'info');
-                view.files.slice(0, 5).forEach(file => {
-                    this.log(`  • ${file.key} (${file.size} bytes)`, 'info');
+            // Check cache status
+            const cacheStatus = this.client.datasite.getCacheStatus();
+            console.log(`🗄️ Cache status: ${cacheStatus.cached ? 'Cached' : 'Not cached'}`);
+            if (cacheStatus.lastFetch) {
+                console.log(`⏰ Last fetch: ${cacheStatus.lastFetch.toLocaleString()}`);
+            }
+            
+            if (files && files.length > 0) {
+                console.log('📋 File list:');
+                
+                files.slice(0, 5).forEach((file, index) => {
+                    console.log(`  ${index + 1}. ${file.key} (${file.size} bytes)`);
+                    if (file.lastModified) {
+                        console.log(`     Modified: ${new Date(file.lastModified).toLocaleString()}`);
+                    }
                 });
-                if (view.files.length > 5) {
-                    this.log(`  ... and ${view.files.length - 5} more`, 'info');
+                if (files.length > 5) {
+                    console.log(`  ... and ${files.length - 5} more files`);
+                }
+                
+                // Test the new getPathView method
+                console.log('🔬 Testing path filtering...');
+                
+                // Extract unique path prefixes from the files
+                const pathPrefixes = new Set();
+                files.forEach(file => {
+                    const parts = file.key.split('/');
+                    if (parts.length > 1) {
+                        pathPrefixes.add(parts[0] + '/');
+                    }
+                });
+                
+                if (pathPrefixes.size > 0) {
+                    const testPath = Array.from(pathPrefixes)[0];
+                    console.log(`🔍 Testing getPathView('${testPath}')`);
+                    
+                    const filteredFiles = await this.client.datasite.getPathView(testPath);
+                    console.log(`✅ Found ${filteredFiles.length} files matching path '${testPath}'`);
+                    
+                    if (filteredFiles.length > 0) {
+                        console.log('📁 Filtered results (first 3):');
+                        filteredFiles.slice(0, 3).forEach((file, index) => {
+                            console.log(`  ${index + 1}. ${file.key}`);
+                        });
+                    }
+                } else {
+                    console.log('⚠️ No path prefixes found for filtering test');
+                }
+                
+                // Test auto-refresh behavior
+                console.log('⏳ Cache will auto-refresh every 10 seconds');
+                
+            } else {
+                console.log('📭 No files in datasite view');
+            }
+            
+            if (statusDiv) {
+                statusDiv.innerHTML = `<div class="status status-success">✅ Datasite: ${files?.length || 0} files (cached)</div>`;
+            }
+            
+        } catch (error) {
+            console.error(`❌ Datasite error: ${error.message}`);
+            if (error.code) {
+                console.error(`🔍 Error code: ${error.code}`);
+            }
+        }
+    }
+
+    async testPathView() {
+        if (!this.client || !this.isAuthenticated) {
+            console.error('❌ Not authenticated');
+            return;
+        }
+
+        const pathInput = document.getElementById('path-input');
+        const path = pathInput ? pathInput.value.trim() : 'public/';
+        
+        if (!path) {
+            console.error('❌ Please enter a path');
+            return;
+        }
+
+        try {
+            const statusDiv = document.getElementById('path-view-status');
+            if (statusDiv) {
+                statusDiv.innerHTML = '<div class="status status-info">⏳ Getting filtered path view...</div>';
+            }
+            
+            console.log('🌳 TESTING PATH VIEW (Filtered)');
+            console.log(`🔍 Filter path: ${path}`);
+            
+            // Normalize the path for our getPathView method
+            const normalizedPath = path.startsWith('/') ? path.substring(1) : path;
+            
+            // Call the new getPathView method (uses cached data)
+            const files = await this.client.datasite.getPathView(normalizedPath);
+            
+            // Check cache status
+            const cacheStatus = this.client.datasite.getCacheStatus();
+            console.log(`🗄️ Using cached data (Last fetch: ${cacheStatus.lastFetch ? cacheStatus.lastFetch.toLocaleString() : 'Never'})`);
+            
+            console.log(`✅ Filtered view received!`);
+            console.log(`📊 Files matching '${normalizedPath}': ${files?.length || 0}`);
+            
+            if (files && files.length > 0) {
+                console.log('🗂️ File Paths:');
+                
+                // Sort files by key for consistent display
+                const sortedFiles = files.sort((a, b) => a.key.localeCompare(b.key));
+                
+                // Display file paths in HTML
+                this.renderFilePathsList(sortedFiles, normalizedPath);
+                
+                // Also log to console for debugging
+                sortedFiles.forEach((file, index) => {
+                    const sizeStr = this.formatFileSize(file.size);
+                    const dateStr = file.lastModified ? new Date(file.lastModified).toLocaleString() : 'Unknown';
+                    
+                    console.log(`  ${index + 1}. ${file.key}`);
+                    console.log(`     Size: ${sizeStr} | Modified: ${dateStr}`);
+                });
+                
+                // Show summary
+                const totalSize = files.reduce((sum, f) => sum + f.size, 0);
+                console.log('📊 Summary:');
+                console.log(`  • Total files: ${files.length}`);
+                console.log(`  • Total size: ${this.formatFileSize(totalSize)}`);
+                
+            } else {
+                console.log(`📭 No files found matching path: ${normalizedPath}`);
+                console.log('💡 Try paths like: public/, user/, data/');
+                
+                // Hide the file paths container
+                const container = document.getElementById('file-paths-container');
+                if (container) {
+                    container.style.display = 'none';
                 }
             }
             
             if (statusDiv) {
-                statusDiv.innerHTML = `<span class="success">✅ Datasite: ${view.files?.length || 0} files</span>`;
+                statusDiv.innerHTML = `<div class="status status-success">✅ Found ${files?.length || 0} files matching path: ${normalizedPath}</div>`;
             }
             
         } catch (error) {
-            this.log(`❌ Datasite error: ${error.message}`, 'error');
+            const statusDiv = document.getElementById('path-view-status');
+            
+            console.error(`❌ Path view error: ${error.message}`);
             if (error.code) {
-                this.log(`🔍 Error code: ${error.code}`, 'error');
-            }
-        }
-    }
-
-    async listFiles() {
-        if (!this.client || !this.isAuthenticated) {
-            this.log('❌ Not authenticated', 'error');
-            return;
-        }
-
-        try {
-            const statusDiv = document.getElementById('services-status');
-            this.log('📋 LISTING UPLOADED FILES', 'critical');
-            
-            const list = await this.client.blob.list();
-            
-            this.log(`✅ Found ${list.blobs?.length || 0} files`, 'success');
-            
-            if (list.blobs && list.blobs.length > 0) {
-                this.log('📁 Your files:', 'info');
-                list.blobs.forEach((blob, index) => {
-                    this.log(`  ${index + 1}. ${blob.key}`, 'info');
-                    this.log(`     Size: ${blob.size} bytes`, 'info');
-                    this.log(`     Modified: ${new Date(blob.lastModified).toLocaleString()}`, 'info');
-                });
-            } else {
-                this.log('📭 No files found', 'warning');
+                console.error(`🔍 Error code: ${error.code}`);
             }
             
             if (statusDiv) {
-                statusDiv.innerHTML = `<span class="success">✅ Listed ${list.blobs?.length || 0} files</span>`;
+                statusDiv.innerHTML = '<div class="status status-error">❌ Path view failed - check console</div>';
             }
+        }
+    }
+    
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    renderFilePathsList(files, filterPath) {
+        const container = document.getElementById('file-paths-container');
+        const titleEl = document.getElementById('files-title');
+        const listDiv = document.getElementById('file-paths-list');
+        const summaryDiv = document.getElementById('file-summary');
+        
+        if (!container || !listDiv || !summaryDiv) return;
+        
+        // Show the container with fade-in animation
+        container.style.display = 'block';
+        container.classList.add('fade-in');
+        
+        // Update title
+        if (titleEl) {
+            titleEl.textContent = `Files matching "${filterPath}"`;
+        }
+        
+        // Clear previous content
+        listDiv.innerHTML = '';
+        
+        if (files.length === 0) {
+            listDiv.innerHTML = `
+                <div class="empty-state">
+                    <span class="emoji">📭</span>
+                    <p>No files found matching this path</p>
+                    <p style="font-size: 0.75rem; margin-top: 8px;">Try paths like: public/, user/, data/</p>
+                </div>
+            `;
+            summaryDiv.innerHTML = '';
+            return;
+        }
+        
+        let totalSize = 0;
+        
+        files.forEach((file, index) => {
+            const sizeStr = this.formatFileSize(file.size);
+            const dateStr = file.lastModified ? new Date(file.lastModified).toLocaleString() : 'Unknown';
+            totalSize += file.size;
             
-        } catch (error) {
-            this.log(`❌ List error: ${error.message}`, 'error');
-            if (error.code) {
-                this.log(`🔍 Error code: ${error.code}`, 'error');
-            }
-        }
-    }
-
-    showDebugInfo() {
-        this.log('🔧 DEBUG INFORMATION', 'critical');
-        this.log(`Client initialized: ${!!this.client}`, 'info');
-        this.log(`Authenticated: ${this.isAuthenticated}`, 'info');
-        this.log(`Current user: ${this.currentUser || 'None'}`, 'info');
+            // Determine file icon based on extension
+            const ext = file.key.split('.').pop().toLowerCase();
+            let icon = '📄';
+            if (['jpg', 'jpeg', 'png', 'gif', 'svg'].includes(ext)) icon = '🖼️';
+            else if (['js', 'ts', 'py', 'java', 'c', 'cpp'].includes(ext)) icon = '📝';
+            else if (['json', 'xml', 'yaml', 'yml'].includes(ext)) icon = '📋';
+            else if (['zip', 'tar', 'gz', 'rar'].includes(ext)) icon = '📦';
+            else if (['pdf'].includes(ext)) icon = '📕';
+            else if (['md', 'txt'].includes(ext)) icon = '📃';
+            else if (['css'].includes(ext)) icon = '🎨';
+            else if (['html', 'htm'].includes(ext)) icon = '🌐';
+            
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-item';
+            fileItem.innerHTML = `
+                <span class="file-icon">${icon}</span>
+                <div class="file-details">
+                    <div class="file-path">${file.key}</div>
+                    <div class="file-meta">Size: ${sizeStr} • Modified: ${dateStr}</div>
+                </div>
+            `;
+            
+            listDiv.appendChild(fileItem);
+        });
         
-        if (this.client) {
-            this.log(`Client ready: ${this.client.isReady()}`, 'info');
-            this.log(`WebSocket connected: ${this.client.websocket?.isConnected() || false}`, 'info');
-        }
-        
-        this.log(`SyftBoxClient available: ${typeof SyftBoxClient !== 'undefined'}`, 'info');
-        if (typeof SyftBoxClient !== 'undefined') {
-            this.log(`Available exports: ${Object.keys(SyftBoxClient).join(', ')}`, 'info');
-        }
-    }
-
-    // Public API methods
-    getLogEntries() {
-        return [...this.logEntries];
-    }
-
-    exportLogs() {
-        const exportData = {
-            timestamp: new Date().toISOString(),
-            testSession: {
-                authenticated: this.isAuthenticated,
-                user: this.currentUser,
-                clientInitialized: !!this.client
-            },
-            logs: this.logEntries
-        };
-
-        const jsonString = JSON.stringify(exportData, null, 2);
-        const blob = new Blob([jsonString], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `syftbox-sdk-test-logs-${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        this.log('📊 Test logs exported successfully', 'success');
+        // Update summary
+        const cacheStatus = this.client.datasite.getCacheStatus();
+        summaryDiv.innerHTML = `
+            <strong>Total:</strong> ${files.length} files • 
+            <strong>Size:</strong> ${this.formatFileSize(totalSize)} • 
+            <strong>Cache updated:</strong> ${cacheStatus.lastFetch ? cacheStatus.lastFetch.toLocaleString() : 'Never'}
+        `;
     }
 }
 
-// Export for global access
+// Initialize the testing application when the script loads
 window.TestingApp = TestingApp;
