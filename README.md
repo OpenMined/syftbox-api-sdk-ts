@@ -1,266 +1,167 @@
 # SyftBox API SDK
 
-TypeScript SDK for interacting with the SyftBox API - a secure data collaboration platform.
-
-## Features
-
-- **Authentication**: OTP-based authentication with automatic token refresh
-- **Blob Storage**: Upload, download, and manage files with presigned URLs
-- **WebSocket**: Real-time bidirectional communication
-- **RPC**: Remote procedure calls with polling support
-- **ACL**: Access control list management
-- **Datasite**: Data site operations
-- **Plugin System**: Extensible architecture with middleware support
-- **Type Safety**: Full TypeScript support with comprehensive type definitions
-- **Error Handling**: Detailed error codes and context preservation
+TypeScript SDK for secure data collaboration with SyftBox - providing authentication, file operations, and datasite services.
 
 ## Installation
 
 ```bash
 npm install @syftbox/api-sdk
-# or
-yarn add @syftbox/api-sdk
-# or
-pnpm add @syftbox/api-sdk
 ```
 
 ## Quick Start
 
 ```typescript
-import { createSyftBoxClient } from '@syftbox/api-sdk';
+import { SyftBoxClient } from '@syftbox/api-sdk';
 
-// Initialize the client
-const client = createSyftBoxClient({
-  serverUrl: 'https://api.syftbox.com',
-  logging: {
-    enabled: true,
-    level: 'info'
-  }
+// Initialize client
+const client = SyftBoxClient.createSyftBoxClient({
+  serverUrl: 'https://syftbox.net'
 });
 
-// Authenticate with OTP
-await client.auth.requestOTP('user@example.com');
-await client.auth.verifyOTP('user@example.com', '123456');
+// 1. Authentication with OTP
+await client.auth.requestOTP('your-email@example.com');
+await client.auth.verifyOTP('your-email@example.com', '12345678');
 
-// Upload a file
-const file = new File(['Hello World'], 'hello.txt', { type: 'text/plain' });
-const result = await client.blob.upload('path/to/hello.txt', file);
+// 2. Upload files
+const testData = new Blob(['Hello SyftBox!'], { type: 'text/plain' });
+await client.blob.upload('public/test.txt', testData);
 
-// Use WebSocket for real-time updates
-client.websocket.connect();
-client.websocket.on('message', (msg) => {
-  console.log('Received:', msg);
-});
+// 3. Download files  
+const fileData = await client.blob.downloadFile('public/test.txt');
+const content = new TextDecoder('utf-8').decode(fileData);
+
+// 4. Browse datasite files
+const allFiles = await client.datasite.getView();
+const publicFiles = await client.datasite.getPathView('public/');
 ```
 
-## Configuration
+## Core Use Cases
+
+Based on the test interface, here are the three main use cases:
+
+### 1. Authentication
+```typescript
+// Request OTP code via email
+await client.auth.requestOTP('your-email@example.com');
+
+// Verify the 8-digit code
+await client.auth.verifyOTP('your-email@example.com', '12345678');
+
+// Check if authenticated
+const isLoggedIn = client.auth.isAuthenticated();
+const currentUser = client.auth.getCurrentUser();
+```
+
+### 2. File Operations  
+```typescript
+// Upload a test file to your public folder
+const testData = new Blob(['Test content'], { type: 'text/plain' });
+await client.blob.upload('public/test-file.txt', testData);
+
+// Download and read file content
+const fileData = await client.blob.downloadFile('public/test-file.txt');
+const textContent = new TextDecoder('utf-8').decode(fileData);
+```
+
+### 3. Browse Your Files
+```typescript
+// Get all accessible files  
+const allFiles = await client.datasite.getView();
+console.log(`Found ${allFiles.length} files`);
+
+// Filter by folder path
+const publicFiles = await client.datasite.getPathView('public/');
+const dataFiles = await client.datasite.getPathView('data/');
+```
+
+## Try It Out
+
+Run the test interface to see these features in action:
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd syftbox-api-sdk
+
+# Build the SDK
+npm install
+npm run build
+
+# Open the test interface
+open test-browser/index.html
+```
+
+The test interface provides:
+- **Live Authentication**: Request and verify OTP codes with your SyftBox email
+- **File Upload/Download**: Test file operations with automatic test file creation
+- **Datasite Browser**: Explore your files with filtering by path prefix
+
+## Configuration Options
+
+### Custom Proxy Server
+For file downloads, you can configure a custom proxy server:
 
 ```typescript
-const client = createSyftBoxClient({
-  serverUrl: 'https://api.syftbox.com',
-  
-  // Authentication options
-  auth: {
-    tokenStorage: new LocalStorageTokenStorage(), // or MemoryTokenStorage, SessionStorageTokenStorage
-    autoRefresh: true
-  },
-  
-  // HTTP client options
-  http: {
-    timeout: 30000,
-    retryAttempts: 3,
-    retryDelay: 1000,
-    headers: {
-      'X-Custom-Header': 'value'
-    }
-  },
-  
-  // WebSocket options
-  websocket: {
-    url: 'wss://api.syftbox.com/ws',
-    reconnect: true,
-    reconnectInterval: 5000,
-    maxReconnectAttempts: 10
-  },
-  
-  // Proxy configuration for blob downloads
+const client = SyftBoxClient.createSyftBoxClient({
+  serverUrl: 'https://syftbox.net',
   proxy: {
-    baseUrl: 'http://localhost:8000'
+    baseUrl: 'https://your-proxy-server.com:8443'  // Your custom proxy server
+  }
+});
+```
+
+The SDK automatically appends `/proxy-download` to your base URL:
+- `baseUrl: 'https://your-proxy-server.com:8443'` → `https://your-proxy-server.com:8443/proxy-download`
+- `baseUrl: 'http://localhost:3000'` → `http://localhost:3000/proxy-download`
+- **Default**: `http://localhost:8000/proxy-download` (if not specified)
+
+### Additional Options
+```typescript
+const client = SyftBoxClient.createSyftBoxClient({
+  serverUrl: 'https://syftbox.net',
+  
+  // Custom proxy for downloads
+  proxy: {
+    baseUrl: 'https://your-proxy.com'
   },
   
-  // Logging configuration
+  // Logging configuration  
   logging: {
     enabled: true,
-    level: 'debug' // 'debug' | 'info' | 'warn' | 'error'
+    level: 'debug'  // 'debug' | 'info' | 'warn' | 'error'
+  },
+  
+  // Datasite caching
+  datasite: {
+    refreshIntervalMs: 10000,
+    autoRefresh: true
   }
 });
 ```
 
-## API Services
+## Browser Usage
 
-### Authentication Service
+For browser applications, use the UMD bundle:
 
-```typescript
-// Request OTP
-await client.auth.requestOTP('user@example.com');
-
-// Verify OTP
-const tokens = await client.auth.verifyOTP('user@example.com', '123456');
-
-// Check authentication status
-const isAuthenticated = client.auth.isAuthenticated();
-
-// Get current user
-const user = client.auth.getCurrentUser();
-
-// Logout
-await client.auth.logout();
-```
-
-### Blob Service
-
-```typescript
-// Upload file
-const uploadResult = await client.blob.upload('path/to/file.txt', fileData);
-
-// Download file
-const fileContent = await client.blob.downloadFile('path/to/file.txt');
-
-// Get presigned URLs for upload
-const presignedUrls = await client.blob.uploadPresigned(['file1.txt', 'file2.txt']);
-
-// Delete files
-const deleteResult = await client.blob.delete(['file1.txt', 'file2.txt']);
-
-// List blobs
-const blobs = await client.blob.list();
-
-// Check if file exists
-const exists = await client.blob.exists('path/to/file.txt');
-
-// Get file metadata
-const metadata = await client.blob.getMetadata('path/to/file.txt');
-```
-
-### WebSocket Service
-
-```typescript
-// Connect to WebSocket
-await client.websocket.connect();
-
-// Send message
-client.websocket.send({
-  type: 'custom',
-  data: { message: 'Hello' }
-});
-
-// Listen for messages
-client.websocket.on('message', (message) => {
-  console.log('Received:', message);
-});
-
-// Handle connection events
-client.websocket.on('connect', () => {
-  console.log('Connected');
-});
-
-client.websocket.on('disconnect', (event) => {
-  console.log('Disconnected:', event);
-});
-
-// Disconnect
-client.websocket.disconnect();
-```
-
-### RPC Service
-
-```typescript
-// Send RPC request
-const result = await client.rpc.send({
-  syftURL: { user: 'alice', domain: 'example.com', path: '/api/method' },
-  from: 'bob',
-  timeout: 5000
-});
-
-// Poll for response
-const pollResult = await client.rpc.poll({
-  requestId: result.requestId,
-  from: 'bob',
-  syftURL: { user: 'alice', domain: 'example.com', path: '/api/method' }
-});
-```
-
-### ACL Service
-
-```typescript
-// Check access permissions
-const hasAccess = await client.acl.check({
-  user: 'alice',
-  path: '/data/file.txt',
-  level: AccessLevel.READ
-});
-```
-
-### Datasite Service
-
-```typescript
-// Get datasite view
-const view = await client.datasite.view('alice', '/data');
-```
-
-## Plugin System
-
-Create custom plugins to extend functionality:
-
-```typescript
-import { SyftBoxPlugin } from '@syftbox/api-sdk';
-
-const loggingPlugin: SyftBoxPlugin = {
-  name: 'custom-logger',
-  version: '1.0.0',
-  
-  onRequest(config) {
-    console.log('Request:', config);
-    return config;
-  },
-  
-  onResponse(response) {
-    console.log('Response:', response);
-    return response;
-  },
-  
-  onError(error) {
-    console.error('Error:', error);
-    return error;
-  }
-};
-
-// Register plugin
-client.plugins.register(loggingPlugin);
+```html
+<script src="dist/syftbox.umd.js"></script>
+<script>
+  const client = SyftBoxClient.createSyftBoxClient({
+    serverUrl: 'https://syftbox.net',
+    proxy: {
+      baseUrl: 'https://your-proxy.com'  // Optional custom proxy
+    }
+  });
+</script>
 ```
 
 ## Error Handling
 
-The SDK provides comprehensive error handling with specific error codes:
-
 ```typescript
-import { SyftBoxError, SyftBoxErrorCode } from '@syftbox/api-sdk';
-
 try {
-  await client.blob.upload('file.txt', data);
+  await client.auth.verifyOTP(email, otp);
 } catch (error) {
-  if (error instanceof SyftBoxError) {
-    switch (error.code) {
-      case SyftBoxErrorCode.AUTHENTICATION_FAILED:
-        // Handle auth error
-        break;
-      case SyftBoxErrorCode.BLOB_QUOTA_EXCEEDED:
-        // Handle quota error
-        break;
-      default:
-        // Handle other errors
-    }
-  }
+  console.error('Authentication failed:', error.message);
 }
 ```
 
