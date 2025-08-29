@@ -1,0 +1,62 @@
+# Source files
+src/
+*.ts
+!*.d.ts
+
+# Configuration files
+tsconfig.json
+tsconfig.build.json
+jest.config.js
+.eslintrc.js
+.prettierrc
+.editorconfig
+
+# Test files
+**/__tests__/
+**/*.test.ts
+**/*.spec.ts
+coverage/
+.nyc_output/
+
+# Development files
+.vscode/
+.idea/
+*.log
+*.swp
+*.swo
+.DS_Store
+
+# Git files
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Documentation source
+docs/
+*.md
+!README.md
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Build tools
+.npmrc
+.yarnrc
+yarn.lock
+package-lock.json
+pnpm-lock.yaml
+
+# Environment files
+.env
+.env.*
+
+# Examples (if not needed in package)
+examples/
+demo/

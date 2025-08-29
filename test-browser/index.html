@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SyftBox API SDK Browser Test</title>
+    
+    <!-- Testing Interface Styles -->
+    <link rel="stylesheet" href="assets/css/testing.css">
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 SyftBox API SDK Browser Test</h1>
+        <p>Complete SDK testing with authentication, file operations, and WebSocket</p>
+    </div>
+
+    <div class="container fix-info">
+        <h2>📦 NEW SDK TEST</h2>
+        <p><strong>Package:</strong> @syftbox/api-sdk v1.0.0</p>
+        <p><strong>Features:</strong> OTP Auth • Blob Storage • WebSocket • RPC • ACL • Datasite</p>
+        <p><strong>Browser Bundle:</strong> dist/syftbox.umd.js (IIFE format)</p>
+    </div>
+
+    <div class="container">
+        <h2>Step 1: Authentication</h2>
+        
+        <!-- Step 1a: Initialize -->
+        <div class="auth-step">
+            <button id="init-btn">Initialize Client</button>
+            <div id="init-status"></div>
+        </div>
+        
+        <!-- Step 1b: Request OTP -->
+        <div class="auth-step">
+            <input type="email" id="email" placeholder="your-email@example.com" />
+            <button id="otp-request-btn" disabled>Send OTP to Email</button>
+            <div id="otp-request-status"></div>
+        </div>
+        
+        <!-- Step 1c: Verify OTP -->
+        <div class="auth-step">
+            <input type="text" id="otp" placeholder="Enter 8-digit OTP code" maxlength="8" />
+            <button id="otp-verify-btn" disabled>Verify OTP & Login</button>
+            <div id="auth-status"></div>
+        </div>
+    </div>
+
+    <div class="container critical">
+        <h2>Step 2: File Upload Test</h2>
+        <p>Test blob upload functionality</p>
+        <button disabled id="test-btn">📤 Test File Upload</button>
+        <div id="test-status"></div>
+    </div>
+
+    <div class="container critical">
+        <h2>Step 3: File Download Test</h2>
+        <p>Test download with proxy server</p>
+        <button disabled id="download-test-btn">📥 Test File Download</button>
+        <div id="download-test-status"></div>
+    </div>
+
+    <div class="container">
+        <h2>Step 4: WebSocket Test</h2>
+        <p>Test real-time WebSocket connection</p>
+        <button disabled id="websocket-btn">🔌 Test WebSocket</button>
+        <div id="websocket-status"></div>
+    </div>
+
+    <div class="container">
+        <h2>Step 5: Additional Services</h2>
+        <button disabled id="acl-btn">🔐 Test ACL Check</button>
+        <button disabled id="datasite-btn">📊 Test Datasite View</button>
+        <button disabled id="list-btn">📋 List Uploaded Files</button>
+        <div id="services-status"></div>
+    </div>
+
+    <div class="container">
+        <h2>📝 Real-time Log</h2>
+        <button class="clear-btn" onclick="testingApp && testingApp.clearLog()">Clear</button>
+        <div class="log" id="console-log"></div>
+    </div>
+
+    <!-- SyftBox Client Library (UMD Bundle) -->
+    <script src="../dist/syftbox.umd.js"></script>
+    
+    <!-- Testing Application Module -->
+    <script src="assets/js/testing-app.js"></script>
+    
+    <!-- Application Initialization -->
+    <script>
+        // Initialize testing application when page loads
+        let testingApp;
+        
+        window.addEventListener('load', () => {
+            console.log('🔍 Checking SyftBoxClient availability...');
+            
+            if (typeof SyftBoxClient !== 'undefined') {
+                console.log('✅ SyftBoxClient loaded successfully');
+                console.log('Available exports:', Object.keys(SyftBoxClient));
+                
+                testingApp = new TestingApp();
+                
+                // Expose app to global scope for debugging
+                window.testingApp = testingApp;
+                
+                if (new URLSearchParams(window.location.search).get('debug') === 'true') {
+                    window.SyftBox = SyftBoxClient;
+                    console.log('🔧 Debug mode: SyftBoxClient exposed as window.SyftBox');
+                    console.log('🔧 Testing app exposed as window.testingApp');
+                }
+            } else {
+                console.error('❌ SyftBoxClient not found! Check if the bundle loaded correctly.');
+                document.getElementById('console-log').innerHTML = 
+                    '<span style="color: #ff0040">❌ Failed to load SyftBox SDK bundle!</span>';
+            }
+        });
+
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', () => {
+            if (testingApp && document.hidden) {
+                testingApp.log('⏸️ Testing paused (page hidden)', 'warning');
+            } else if (testingApp && !document.hidden) {
+                testingApp.log('▶️ Testing resumed (page visible)', 'info');
+            }
+        });
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (!testingApp) return;
+            
+            // Ctrl+E to export logs
+            if (e.ctrlKey && e.key === 'e') {
+                e.preventDefault();
+                testingApp.exportLogs();
+            }
+            
+            // Ctrl+L to clear logs
+            if (e.ctrlKey && e.key === 'l') {
+                e.preventDefault();
+                testingApp.clearLog();
+            }
+            
+            // Ctrl+D for debug info
+            if (e.ctrlKey && e.key === 'd') {
+                e.preventDefault();
+                testingApp.showDebugInfo();
+            }
+        });
+
+        // Add initialization hint
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                if (testingApp) {
+                    testingApp.log('💡 Keyboard shortcuts: Ctrl+E (export), Ctrl+L (clear), Ctrl+D (debug)', 'info');
+                    testingApp.log('📦 SDK Version: @syftbox/api-sdk v1.0.0', 'info');
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
